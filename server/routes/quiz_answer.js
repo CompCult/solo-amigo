@@ -84,7 +84,7 @@ router.post('/', async function(req, res) {
   quiz_answer._user       = req.body._user;
   quiz_answer._quiz       = req.body._quiz;
   quiz_answer.answer      = req.body.answer;
-  approved                = await verifyAnswer(quiz_answer._quiz, quiz_answer.answer);
+  approved                = await verifyAnswer(quiz_answer._quiz, quiz_answer.answer, quiz_answer._user);
 
   if (approved !== undefined) {
     quiz_answer.approved = approved;
@@ -99,13 +99,13 @@ router.post('/', async function(req, res) {
   });
 });
 
-var verifyAnswer = async function(quiz_id, answer) {
+var verifyAnswer = async function(quiz_id, answer, user) {
   let quiz = await Quiz.findById(quiz_id);
   
   console.log('------', quiz_id, answer, quiz);
   
   if(quiz.correct_answer && quiz.correct_answer == answer) {
-    recompenseUser(answer, quiz.points);
+    recompenseUser(user, quiz.points);
     return true;
   } else if (quiz.correct_answer && quiz.correct_answer != answer) {
     return false;
