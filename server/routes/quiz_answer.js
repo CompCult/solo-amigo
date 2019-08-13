@@ -101,8 +101,9 @@ router.post('/', async function(req, res) {
 
 var verifyAnswer = async function(quiz_id, answer) {
   let quiz = await Quiz.findById(quiz_id).exec();
-  
+    
   if(quiz.correct_answer && quiz.correct_answer == answer) {
+    console.log(answer._user, quiz.points);
     recompenseUser(answer._user, quiz.points);
     return true;
   } else if (quiz.correct_answer && quiz.correct_answer != answer.answer) {
