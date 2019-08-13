@@ -101,7 +101,9 @@ router.post('/', async function(req, res) {
 
 var verifyAnswer = async function(quiz_id, answer) {
   let quiz = await Quiz.findById(quiz_id);
-    
+  
+  console.log('------', quiz_id, answer, quiz);
+  
   if(quiz.correct_answer && quiz.correct_answer == answer) {
     console.log('input: ', answer._user, quiz.points);
     recompenseUser(answer._user, quiz.points);
