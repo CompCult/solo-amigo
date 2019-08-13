@@ -105,10 +105,9 @@ var verifyAnswer = async function(quiz_id, answer) {
   console.log('------', quiz_id, answer, quiz);
   
   if(quiz.correct_answer && quiz.correct_answer == answer) {
-    console.log('input: ', answer._user, quiz.points);
-    recompenseUser(answer._user, quiz.points);
+    recompenseUser(answer, quiz.points);
     return true;
-  } else if (quiz.correct_answer && quiz.correct_answer != answer.answer) {
+  } else if (quiz.correct_answer && quiz.correct_answer != answer) {
     return false;
   } 
 }
