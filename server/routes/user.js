@@ -40,8 +40,10 @@ router.get('/query/fields', function (req, res) {
     return accumulator
   }, {}
   );
+
+  console.log(query)
   
-  User.find(query, null, { sort: {name: 1} }, function (err, usuario) {
+  User.find(query, function (err, usuario) {
     if (err) {
       res.status(400).send(err);
     } else if (!usuario) {
