@@ -1,14 +1,14 @@
 var express = require('express');
 var router = express.Router();
-var bcrypt  = require('bcryptjs');
+var bcrypt = require('bcryptjs');
 
 var User = require('../models/user.js');
 var Uploads = require('../upload.js');
 var Mailer = require('../mailer.js');
 
 //Index
-router.get('/', function(req, res) {
-  User.find({}, function(err, usuarios) {
+router.get('/', function (req, res) {
+  User.find({}, function (err, usuarios) {
     if (err) {
       res.status(400).send(err);
     } else {
@@ -18,8 +18,8 @@ router.get('/', function(req, res) {
 });
 
 //Show
-router.get('/:user_id', function(req, res) {
-  User.findById(req.params.user_id, function(err, usuario) {
+router.get('/:user_id', function (req, res) {
+  User.findById(req.params.user_id, function (err, usuario) {
     if (err) {
       res.status(400).send(err);
     } else {
@@ -29,11 +29,22 @@ router.get('/:user_id', function(req, res) {
 });
 
 //Find by params
-router.get('/query/fields', function(req, res) {
-  User.find(req.query, function(err, usuario) {
+router.get('/query/fields', function (req, res) {
+  const query = Object.keys(req.query).reduce((accumulator, key) => {
+    if (['name', 'email'].includes(key)) {
+      accumulator.key = { $regex: new RegExp(req.query[key]), $options: 'ig' }
+    } else {
+      accumulator.key = req.query[key]
+    }
+
+    return accumulator
+  }, {}
+  );
+  
+  User.find(req.query, null, { sort: {name: 1} }, function (err, usuario) {
     if (err) {
       res.status(400).send(err);
-    } else if (!usuario){
+    } else if (!usuario) {
       res.status(404).send("Usuário não encontrado");
     } else {
       res.status(200).json(usuario);
@@ -42,26 +53,26 @@ router.get('/query/fields', function(req, res) {
 });
 
 //Create
-router.post('/register', function(req, res) {
-  var user      = new User();
-  user.name     = req.body.name;
-  user.email    = req.body.email;
-  user.type     = req.body.type;
+router.post('/register', function (req, res) {
+  var user = new User();
+  user.name = req.body.name;
+  user.email = req.body.email;
+  user.type = req.body.type;
 
-  bcrypt.hash(req.body.password, 10, function(err, hash) {
+  bcrypt.hash(req.body.password, 10, function (err, hash) {
     if (err) {
       res.status(400).send(err);
     } else {
       user.password = hash;
-      user.save(function(err) {
+      user.save(function (err) {
         if (err) {
           if (err.name === 'MongoError' && err.code === 11000) {
-                // Duplicate username
-                console.log(err);
-                return res.status(400).send('Usuário já existente.');
-              }
-              // Some other error
-              return res.status(400).send(err);
+            // Duplicate username
+            console.log(err);
+            return res.status(400).send('Usuário já existente.');
+          }
+          // Some other error
+          return res.status(400).send(err);
         } else {
           res.status(200).send(user);
         }
@@ -71,18 +82,18 @@ router.post('/register', function(req, res) {
 });
 
 //Trade password
-router.post('/recovery/password_edit', function(req, res) {
-  User.findOne({ email: req.query.email}, function(err, user) {
+router.post('/recovery/password_edit', function (req, res) {
+  User.findOne({ email: req.query.email }, function (err, user) {
     if (err) {
       res.status(400).send(err);
-    } else if (!user){
+    } else if (!user) {
       res.status(404).send("Usuário não encontrado");
     } else {
       if (user.new_password) {
         user.password = user.new_password;
         user.new_password = null;
 
-        user.save(function(err) {
+        user.save(function (err) {
           if (err) {
             return res.status(403).send(err);
           } else {
@@ -90,40 +101,40 @@ router.post('/recovery/password_edit', function(req, res) {
           }
         });
       } else {
-          return res.status(404).send('Nova senha não encontrada, tente novamente.');
+        return res.status(404).send('Nova senha não encontrada, tente novamente.');
       }
     }
   });
 });
 
 //Recover pasword
-router.post('/recovery', function(req, res) {
+router.post('/recovery', function (req, res) {
   let user_email = req.body.email;
   let new_password = req.body.new_password;
   let html = "<div style='width:90%; margin-left:auto; margin-right:auto; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px;'>" +
-            "<div style='font-family: Arial; border-color: #502274;'>" +
-            "<div style='vertical-align:middle; text-align:justify;'>" +
-            "<p style='text-align:left;'>Olá!</p>" + 
-            "<p>Você está recebendo esse e-mail que foi requisitada a alteração da sua senha de acesso. Se você não fez nenhuma requisição, pode simplesmente ignorar este e-mail.</p>" +
-              "<p>Para confirmar a alteração da senha, clique no botão abaixo:</p>" + 
-                "<form action='http://solo-amigo.herokuapp.com/users/recovery/password_edit?email=" + req.body.email + "' method='post'>" +
-                "<input type='submit' value='Confirmar alteração de senha' style='margin-top:3px; margin-bottom:3px; background: #502274; margin-bottom: 3px; padding: 10px; text-align: center; color: white; font-weight: bold; border: 1px solid #502274;'></form>" +
-                "<p style='text-align:left;' >Bom uso,</p>" + 
-                "<p style='text-align:left;' ><b>Equipe Solo Amigo!</b></p>" + 
-                "</div></div></div>"
+    "<div style='font-family: Arial; border-color: #502274;'>" +
+    "<div style='vertical-align:middle; text-align:justify;'>" +
+    "<p style='text-align:left;'>Olá!</p>" +
+    "<p>Você está recebendo esse e-mail que foi requisitada a alteração da sua senha de acesso. Se você não fez nenhuma requisição, pode simplesmente ignorar este e-mail.</p>" +
+    "<p>Para confirmar a alteração da senha, clique no botão abaixo:</p>" +
+    "<form action='http://solo-amigo.herokuapp.com/users/recovery/password_edit?email=" + req.body.email + "' method='post'>" +
+    "<input type='submit' value='Confirmar alteração de senha' style='margin-top:3px; margin-bottom:3px; background: #502274; margin-bottom: 3px; padding: 10px; text-align: center; color: white; font-weight: bold; border: 1px solid #502274;'></form>" +
+    "<p style='text-align:left;' >Bom uso,</p>" +
+    "<p style='text-align:left;' ><b>Equipe Solo Amigo!</b></p>" +
+    "</div></div></div>"
 
-  User.findOne({ email: user_email }, function(err, user) {
+  User.findOne({ email: user_email }, function (err, user) {
     if (err) {
       res.status(400).send(err);
     } if (!user) {
       res.status(400).send(err);
     } else {
-      bcrypt.hash(req.body.new_password, 10, function(err, hash) {
+      bcrypt.hash(req.body.new_password, 10, function (err, hash) {
         if (err) {
           res.status(400).send(err);
         } else {
           user.new_password = hash;
-          user.save(function(err) {
+          user.save(function (err) {
             if (err) {
               return res.status(400).send(err);
             } else {
@@ -134,12 +145,12 @@ router.post('/recovery', function(req, res) {
         }
       });
     }
-  }); 
+  });
 });
 
 // Update with post
-router.post('/update/:user_id', function(req, res) {
-  User.findById(req.params.user_id, function(err, user) {
+router.post('/update/:user_id', function (req, res) {
+  User.findById(req.params.user_id, function (err, user) {
     if (!user) {
       res.status(400).send('Usuário não encontrado!');
     }
@@ -177,9 +188,9 @@ router.post('/update/:user_id', function(req, res) {
 
 
     if (req.body.password) {
-      bcrypt.hash(req.body.password, 10, function(err, hash) {
+      bcrypt.hash(req.body.password, 10, function (err, hash) {
         user.password = hash;
-        user.save(function(err) {
+        user.save(function (err) {
           if (err) {
             res.status(400).send(err);
           } else {
@@ -188,7 +199,7 @@ router.post('/update/:user_id', function(req, res) {
         });
       });
     } else {
-      user.save(function(err) {
+      user.save(function (err) {
         if (err) {
           res.status(400).send(err);
         } else {
@@ -200,8 +211,8 @@ router.post('/update/:user_id', function(req, res) {
 });
 
 // Update
-router.put('/:user_id', function(req, res) {
-  User.findById(req.params.user_id, function(err, user) {
+router.put('/:user_id', function (req, res) {
+  User.findById(req.params.user_id, function (err, user) {
     if (!user) {
       res.status(400).send('Usuário não encontrado!');
     }
@@ -239,9 +250,9 @@ router.put('/:user_id', function(req, res) {
 
 
     if (req.body.password) {
-      bcrypt.hash(req.body.password, 10, function(err, hash) {
+      bcrypt.hash(req.body.password, 10, function (err, hash) {
         user.password = hash;
-        user.save(function(err) {
+        user.save(function (err) {
           if (err) {
             res.status(400).send(err);
           } else {
@@ -250,7 +261,7 @@ router.put('/:user_id', function(req, res) {
         });
       });
     } else {
-      user.save(function(err) {
+      user.save(function (err) {
         if (err) {
           res.status(400).send(err);
         } else {
@@ -262,14 +273,14 @@ router.put('/:user_id', function(req, res) {
 });
 
 //Auth
-router.post('/auth', function(req, res) {
-  User.findOne({'email': req.body.email}, function(error, user) {
+router.post('/auth', function (req, res) {
+  User.findOne({ 'email': req.body.email }, function (error, user) {
     if (!user) {
       res.status(404).send('Usuário não encontrado.');
     } else if (userIsBanned(user.banned_until)) {
-        res.status(400).send('Usuário banido até ' + user.banned_until.toLocaleString())
+      res.status(400).send('Usuário banido até ' + user.banned_until.toLocaleString())
     } else {
-      bcrypt.compare(req.body.password, user.password, function(err, result) {
+      bcrypt.compare(req.body.password, user.password, function (err, result) {
         if (err) {
           res.status(400).send(err);
         } else {
@@ -281,13 +292,13 @@ router.post('/auth', function(req, res) {
         }
       });
     }
-    
+
   });
 });
 
 // Delete
-router.delete('/:user_id', function(req, res) {
-  User.remove({ _id: req.params.user_id }, function(err) {
+router.delete('/:user_id', function (req, res) {
+  User.remove({ _id: req.params.user_id }, function (err) {
     if (err) {
       res.status(400).send(err);
     } else {
@@ -297,7 +308,7 @@ router.delete('/:user_id', function(req, res) {
 });
 
 //Methods
-userIsBanned = function(date) {
+userIsBanned = function (date) {
   if (date) {
     now = new Date();
     if (date.getTime() > now.getTime()) {
@@ -305,7 +316,7 @@ userIsBanned = function(date) {
     }
   }
 
-  return false;  
-} 
+  return false;
+}
 
 module.exports = router;
