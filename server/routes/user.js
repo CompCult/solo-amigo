@@ -41,7 +41,7 @@ router.get('/query/fields', function (req, res) {
   }, {}
   );
   
-  User.find(req.query, null, { sort: {name: 1} }, function (err, usuario) {
+  User.find(query, null, { sort: {name: 1} }, function (err, usuario) {
     if (err) {
       res.status(400).send(err);
     } else if (!usuario) {
