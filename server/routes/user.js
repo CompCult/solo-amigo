@@ -31,18 +31,15 @@ router.get('/:user_id', function (req, res) {
 //Find by params
 router.get('/query/fields', function (req, res) {
   const query = Object.keys(req.query).reduce((accumulator, key) => {
-    if (['name', 'email'].includes(key)) {
-      accumulator.key = { $regex: new RegExp(req.query[key]), $options: 'ig' }
-    } else {
-      accumulator.key = req.query[key]
-    }
+    ['name', 'email'].includes(key)
+      ? accumulator[key] = { $regex: new RegExp(req.query[key]), $options: 'ig' }
+      : accumulator[key] = req.query[key]
 
     return accumulator
-  }, {}
-  );
+  }, {});
 
   console.log(query)
-  
+
   User.find(query, function (err, usuario) {
     if (err) {
       res.status(400).send(err);
